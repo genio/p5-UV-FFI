@@ -1,0 +1,10 @@
+use strict;
+use warnings;
+
+our $DIR;
+
+{
+    verbose => 1,
+    alien => ['Alien::libuv'],
+    source => ["$DIR/*.c"],
+}
