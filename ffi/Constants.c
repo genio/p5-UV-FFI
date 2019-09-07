@@ -77,9 +77,9 @@ void
 ffi_pl_bundle_constant(const char* package, ffi_platypus_constant_t* c)
 {
     /* some sizeof constants we made ourselves */
-    c->set_sint("UV_FFI_SIZE_TIMEVAL_T", sizeof(uv_timeval_t));
-    c->set_sint("UV_FFI_SIZE_TIMEVAL64_T", sizeof(uv_timeval64_t));
-    c->set_sint("UV_FFI_SIZE_RUSAGE_T", sizeof(uv_rusage_t));
+    c->set_uint("UV_FFI_SIZE_TIMEVAL_T", sizeof(uv_timeval_t));
+    c->set_uint("UV_FFI_SIZE_TIMEVAL64_T", sizeof(uv_timeval64_t));
+    c->set_uint("UV_FFI_SIZE_RUSAGE_T", sizeof(uv_rusage_t));
 
     /* version information */
     _sint(UV_VERSION_MAJOR);
