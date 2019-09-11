@@ -241,6 +241,7 @@ ffi_pl_bundle_constant(const char* package, ffi_platypus_constant_t* c)
     _sint(UV_DIRENT_BLOCK);
 
     /* expose the different Handle constants */
+    _sint(UV_UNKNOWN_HANDLE);
     _sint(UV_ASYNC);
     _sint(UV_CHECK);
     _sint(UV_FS_EVENT);
