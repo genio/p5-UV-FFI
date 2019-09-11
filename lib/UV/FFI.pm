@@ -363,6 +363,20 @@ our %maybe_function = (
         fallback => sub { croak("uv_os_getpriority not implemented until v1.23"); },
     },
 
+    # const char* uv_req_type_name(uv_req_type type)
+    'uv_req_type_name' => {
+        added => [1,19],
+        ffi => [ ['int'], 'string' ],
+        fallback => sub { croak("uv_req_type_name not implemented until v1.19"); },
+    },
+
+    # const char* uv_handle_type_name(uv_handle_type type)
+    'uv_handle_type_name' => {
+        added => [1,19],
+        ffi => [ ['int'], 'string' ],
+        fallback => sub { croak("uv_handle_type_name not implemented until v1.19"); },
+    },
+
     # int uv_os_setpriority(uv_pid_t pid, int priority)
     'uv_os_setpriority' => {
         added => [1,23],
