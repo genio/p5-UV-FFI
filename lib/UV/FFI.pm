@@ -29,6 +29,7 @@ else {
 }
 $ffi->attach('uv_err_name' => ['int'] => 'string');
 $ffi->attach('uv_strerror' => ['int'] => 'string');
+$ffi->attach('uv_handle_size' => [] => 'size_t');
 $ffi->attach('uv_loop_size' => [] => 'size_t');
 
 {
