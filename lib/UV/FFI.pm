@@ -12,11 +12,21 @@ use FFI::Platypus;
 use Path::Tiny qw(path);
 use Sub::Util qw(set_subname);
 use UV::FFI::Constants qw();
+use UV::FFI::UTSName qw();
+use UV::FFI::TimeVal qw();
+use UV::FFI::TimeVal64 qw();
 
-use feature ':5.10';
+use feature ':5.14';
 
-my $ffi = FFI::Platypus->new();
+our @EXPORT_OK = ('uv_os_uname');
+
+my $ffi = FFI::Platypus->new(api => 1);
 $ffi->lib(Alien::libuv->dynamic_libs);
+$ffi->bundle();
+$ffi->type('object(UV::FFI::UTSName)' => 'uv_utsname_t');
+$ffi->type('object(UV::FFI::TimeVal)' => 'uv_timeval_t');
+$ffi->type('object(UV::FFI::TimeVal64)' => 'uv_timeval64_t');
+
 $ffi->type('int64_t', 'uv_pid_t');
 $ffi->type('int', 'uv_file');
 if ($^O eq 'MSWin32') {
@@ -32,147 +42,6 @@ $ffi->attach('uv_strerror' => ['int'] => 'string');
 $ffi->attach('uv_handle_size' => ['int'] => 'size_t');
 $ffi->attach('uv_req_size' => ['int'] => 'size_t');
 $ffi->attach('uv_loop_size' => [] => 'size_t');
-
-{
-    package # hide from PAUSE
-        UV::TimeValT;
-    use FFI::Platypus::Record;
-    use Exporter qw(import);
-    our @EXPORT_OK = qw(hires href);
-    record_layout($ffi, qw(
-        long tv_sec
-        long tv_usec
-    ));
-    sub hires {
-        my $self = shift;
-        return $self->tv_sec . $self->tv_usec;
-    }
-    sub href {
-        my $self = shift;
-        my $href = {
-            tv_sec => $self->tv_sec,
-            tv_usec => $self->tv_usec,
-        };
-        return $href;
-    }
-    1;
-}
-$ffi->type('record(UV::TimeValT)' => 'uv_timeval_t');
-
-{
-    package # hide from PAUSE
-        UV::TimeVal64T;
-    use FFI::Platypus::Record;
-    use Exporter qw(import);
-    record_layout($ffi, qw(
-        int64_t tv_sec
-        int32_t tv_usec
-    ));
-    sub hires {
-        my $self = shift;
-        return $self->tv_sec . $self->tv_usec;
-    }
-    sub href {
-        my $self = shift;
-        my $href = {
-            tv_sec => $self->tv_sec,
-            tv_usec => $self->tv_usec,
-        };
-        return $href;
-    }
-    1;
-}
-$ffi->type('record(UV::TimeVal64T)' => 'uv_timeval64_t');
-
-{
-    package # hide from PAUSE
-        UV::UTSNameT;
-    use FFI::Platypus::Record;
-    use Exporter qw(import);
-    our @EXPORT_OK = qw(href);
-    record_layout($ffi, qw(
-        string(256) sysname
-        string(256) release
-        string(256) version
-        string(256) machine
-    ));
-    sub href {
-        my $self = shift;
-        my $href = {
-            sysname => $self->sysname =~ s/\0+\z//r,
-            release => $self->release =~ s/\0+\z//r,
-            version => $self->version =~ s/\0+\z//r,
-            machine => $self->machine =~ s/\0+\z//r,
-        };
-        return $href;
-    }
-    1;
-}
-
-$ffi->type('record(UV::UTSNameT)' => 'uv_utsname_t');
-
-{
-    package # hide from PAUSE
-        UV::RUsageT;
-    use strict;
-    use warnings;
-    use UV::FFI::Constants ();
-    use FFI::Platypus::Memory qw(malloc free);
-
-    use Exporter qw(import);
-
-    sub new {
-        my $self = bless {}, shift;
-        my $size_rusage = UV::FFI::Constants::UV_FFI_SIZE_RUSAGE_T;
-        $self->{_ptr} = malloc($size_rusage);
-        return $self;
-    }
-
-    sub DESTROY {
-        my $self = shift;
-        free($self->{_ptr});
-    }
-
-    sub ptr { return $_[0]->{_ptr} }
-
-    sub href {
-        my $self = shift;
-        my $val = $self->ptr;
-        use Data::Dumper::Concise;
-        # say Dumper ${$val};
-        my $size_uint64 = $ffi->sizeof('uint64_t');
-        my $size_rusage = UV::FFI::Constants::UV_FFI_SIZE_RUSAGE_T;
-        my $char = $ffi->sizeof('long long') == ($size_rusage/2) ? 'Q' : 'L';
-
-        my @data = unpack("${char}4Q14", $val);
-        return {
-            ru_utime => {
-                tv_sec => $data[0] || 0,
-                tv_usec => $data[1] || 0,
-            },
-            ru_stime => {
-                tv_sec => $data[2] || 0,
-                tv_usec => $data[3] || 0,
-            },
-            ru_maxrss => $data[4] || 0,
-            ru_ixrss => $data[5] || 0,
-            ru_idrss => $data[6] || 0,
-            ru_isrss => $data[7] || 0,
-            ru_minflt => $data[8] || 0,
-            ru_majflt => $data[9] || 0,
-            ru_nswap => $data[10] || 0,
-            ru_inblock => $data[11] || 0,
-            ru_oublock => $data[12] || 0,
-            ru_msgsnd => $data[13] || 0,
-            ru_msgrcv => $data[14] || 0,
-            ru_nsignals => $data[15] || 0,
-            ru_nvcsw => $data[16] || 0,
-            ru_nivcsw => $data[17] || 0,
-        };
-    }
-    1;
-}
-
 
 our %function = (
     # unsigned int uv_version(void)
@@ -251,6 +120,65 @@ our %maybe_function = (
             return 0;
         },
     },
+
+    # int uv_gettimeofday(uv_timeval64_t* tv)
+    'uv_gettimeofday' => {
+        added => [1,28],
+        ffi => [ ['uv_timeval64_t'], 'int', sub {
+            my ($xsub) = @_;
+            my $time_obj = UV::FFI::TimeVal64->new(0,0);
+            my $ret = $xsub->($time_obj);
+            unless ($ret == 0) {
+                my $msg = uv_err_name($ret). ': '. uv_strerror($ret);
+                croak("uv_gettimeofday failed with: $msg");
+            }
+            return $time_obj;
+        }],
+        fallback => sub {
+            warn "uv_gettimeofday not implemented until libuv v1.28";
+            return UV::FFI::TimeVal64->new(time, 0);
+        },
+    },
+
+    # const char* uv_handle_type_name(uv_handle_type type)
+    'uv_handle_type_name' => {
+        added => [1,19],
+        ffi => [ ['int'], 'string' ],
+        fallback => sub { croak("uv_handle_type_name not implemented until v1.19"); },
+    },
+
+    # uv_pid_t uv_os_getpid(void)
+    'uv_os_getpid' => {
+        added => [1,18],
+        ffi => [ [], 'uv_pid_t' ],
+        fallback => sub { return $$; },
+    },
+
+    # uv_pid_t uv_os_getppid(void)
+    'uv_os_getppid' => {
+        added => [1,16],
+        ffi => [ [], 'uv_pid_t' ],
+        fallback => sub { getppid() },
+    },
+
+    # int uv_os_getpriority(uv_pid_t pid, int* priority)
+    'uv_os_getpriority' => {
+        added => [1,23],
+        ffi => [ ['uv_pid_t', 'int *'], 'int', sub {
+            my ($xsub, $pid) = @_;
+            croak("PID required") unless $pid;
+
+            my $priority = 0;
+            my $ret = $xsub->($pid, \$priority);
+            unless ($ret == 0) {
+                my $msg = uv_err_name($ret). ': '. uv_strerror($ret);
+                croak("uv_os_getpriority failed with: $msg");
+            }
+            return $priority;
+        }],
+        fallback => sub { croak("uv_os_getpriority not implemented until v1.23"); },
+    },
+
     # int uv_os_homedir(char* buffer, size_t* size)
     'uv_os_homedir' => {
         added => [1,6],
@@ -272,6 +200,25 @@ our %maybe_function = (
             return undef;
         },
     },
+
+    # int uv_os_setpriority(uv_pid_t pid, int priority)
+    'uv_os_setpriority' => {
+        added => [1,23],
+        ffi => [ ['uv_pid_t', 'int'], 'int', sub {
+            my ($xsub, $pid, $priority) = @_;
+            croak("PID required") unless $pid;
+            croak("priority required") unless defined $priority;
+            my $ret = $xsub->($pid, $priority);
+            unless ($ret == 0) {
+                my $msg = uv_err_name($ret). ': '. uv_strerror($ret);
+                croak("uv_os_setpriority failed with: $msg");
+            }
+            # just return a true value?
+            return 1;
+        }],
+        fallback => sub { croak("uv_os_setpriority not implemented until v1.23"); },
+    },
+
     # int uv_os_tmpdir(char* buffer, size_t* size)
     'uv_os_tmpdir' => {
         added => [1,9],
@@ -294,73 +241,24 @@ our %maybe_function = (
         },
     },
 
-    # uv_pid_t uv_os_getpid(void)
-    'uv_os_getpid' => {
-        added => [1,18],
-        ffi => [ [], 'uv_pid_t' ],
-        fallback => sub { return $$; },
-    },
-
-    # uv_pid_t uv_os_getppid(void)
-    'uv_os_getppid' => {
-        added => [1,16],
-        ffi => [ [], 'uv_pid_t' ],
-        fallback => sub { getppid() },
-    },
-
-    # int uv_gettimeofday(uv_timeval64_t* tv)
-    'uv_gettimeofday' => {
-        added => [1,28],
-        ffi => [ ['uv_timeval64_t'], 'int', sub {
-            my ($xsub) = @_;
-            my $time_obj = UV::TimeVal64T->new(tv_sec => 0, tv_usec => 0);
-            my $ret = $xsub->($time_obj);
-            unless ($ret == 0) {
-                my $msg = uv_err_name($ret). ': '. uv_strerror($ret);
-                croak("uv_gettimeofday failed with: $msg");
-            }
-            return $time_obj;
-        }],
-        fallback => sub {
-            warn "uv_gettimeofday not implemented until libuv v1.28";
-            return UV::TimeVal64T->new(tv_sec => time, tv_usec => 0);
-        },
-    },
-
     # int uv_os_uname(uv_utsname_t* buffer)
     'uv_os_uname' => {
         added => [1,25],
         ffi => [ ['uv_utsname_t'], 'int', sub {
             my ($xsub) = @_;
-            my $obj = UV::UTSNameT->new(sysname => "", release => "", version => "", machine => "");
+            my $obj = UV::FFI::UTSName->new('','','','');
+            croak("Invalid uv_utsname_t") unless $obj;
             my $ret = $xsub->($obj);
             unless ($ret == 0) {
                 my $msg = uv_err_name($ret). ': '. uv_strerror($ret);
                 croak("uv_os_uname failed with: $msg");
             }
+            # just return a true value?
             return $obj;
         }],
         fallback => sub {
             return {};
         }
-    },
-
-    # int uv_os_getpriority(uv_pid_t pid, int* priority)
-    'uv_os_getpriority' => {
-        added => [1,23],
-        ffi => [ ['uv_pid_t', 'int *'], 'int', sub {
-            my ($xsub, $pid) = @_;
-            croak("PID required") unless $pid;
-
-            my $priority = 0;
-            my $ret = $xsub->($pid, \$priority);
-            unless ($ret == 0) {
-                my $msg = uv_err_name($ret). ': '. uv_strerror($ret);
-                croak("uv_os_getpriority failed with: $msg");
-            }
-            return $priority;
-        }],
-        fallback => sub { croak("uv_os_getpriority not implemented until v1.23"); },
     },
 
     # const char* uv_req_type_name(uv_req_type type)
@@ -370,34 +268,7 @@ our %maybe_function = (
         fallback => sub { croak("uv_req_type_name not implemented until v1.19"); },
     },
 
-    # const char* uv_handle_type_name(uv_handle_type type)
-    'uv_handle_type_name' => {
-        added => [1,19],
-        ffi => [ ['int'], 'string' ],
-        fallback => sub { croak("uv_handle_type_name not implemented until v1.19"); },
-    },
-
-    # int uv_os_setpriority(uv_pid_t pid, int priority)
-    'uv_os_setpriority' => {
-        added => [1,23],
-        ffi => [ ['uv_pid_t', 'int'], 'int', sub {
-            my ($xsub, $pid, $priority) = @_;
-            croak("PID required") unless $pid;
-            croak("priority required") unless defined $priority;
-            my $ret = $xsub->($pid, $priority);
-            unless ($ret == 0) {
-                my $msg = uv_err_name($ret). ': '. uv_strerror($ret);
-                croak("uv_os_setpriority failed with: $msg");
-            }
-            # just return a true value?
-            return 1;
-        }],
-        fallback => sub { croak("uv_os_setpriority not implemented until v1.23"); },
-    },
-
 );
-
-our @EXPORT_OK = (keys %function, keys %maybe_function);
 
 foreach my $func (keys %function) {
     $ffi->attach($func, @{$function{$func}});

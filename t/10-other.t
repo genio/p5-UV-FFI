@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 use UV::FFI ();
+use UV::FFI::Constants ();
 
 ok(UV::FFI::uv_os_uname(), "uname");
 ok(UV::FFI::uv_os_gethostname(), "gethostname");

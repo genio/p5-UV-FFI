@@ -1,6 +1,8 @@
 #include <ffi_platypus_bundle.h>
+#include <string.h>
 #include <stdint.h>
 #include <uv.h>
+
 
 /* pulled from sys/signal.h in case we don't have it in Windows */
 #if !defined(SIGPROF)

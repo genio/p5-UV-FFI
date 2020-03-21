@@ -3,12 +3,13 @@ on 'runtime' => sub {
     requires 'warnings';
     requires 'feature';
     requires 'utf8';
-    requires 'Alien::libuv';
+    requires 'Alien::Base::Wrapper';
+    requires 'Alien::libuv' => '1.013';
     requires 'Carp';
     requires 'Cwd';
     requires 'Data::Dumper';
     requires 'Exporter' => '5.57';
-    requires 'FFI::Platypus' => '0.96';
+    requires 'FFI::Platypus' => '1.00';
     requires 'File::Basename';
     requires 'File::ShareDir';
     requires 'File::Spec';

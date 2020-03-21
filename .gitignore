@@ -26,3 +26,4 @@ xx*
 *.o
 lib/*.c
 lib/UV/*.c
+.tmp/

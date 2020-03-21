@@ -1,21 +1,24 @@
 use strict;
 use warnings;
 use Test::More;
+
+use v5.10;
+use Data::Dumper::Concise;
 use UV::FFI ();
 
 my $utsname = UV::FFI::uv_os_uname();
 
 ok($utsname, "uv_os_uname() returned a value");
-isa_ok($utsname, 'UV::UTSNameT', 'it is a UV::UTSNameT');
-ok($utsname->sysname, 'sysname: '. $utsname->sysname =~ s/\0+\z//r);
-ok($utsname->release, 'release: '. $utsname->release =~ s/\0+\z//r);
-ok($utsname->version, 'version: '. $utsname->version =~ s/\0+\z//r);
-ok($utsname->machine, 'machine: '. $utsname->machine =~ s/\0+\z//r);
-my $answer = {
-    sysname => $utsname->sysname =~ s/\0+\z//r,
-    release => $utsname->release =~ s/\0+\z//r,
-    version => $utsname->version =~ s/\0+\z//r,
-    machine => $utsname->machine =~ s/\0+\z//r,
+isa_ok($utsname, 'UV::FFI::UTSName', 'it is a UV::FFI::UTSName');
+ok($utsname->sysname, 'sysname: '. $utsname->sysname);
+ok($utsname->release, 'release: '. $utsname->release);
+ok($utsname->version, 'version: '. $utsname->version);
+ok($utsname->machine, 'machine: '. $utsname->machine);
+my $answer = +{
+    sysname => $utsname->sysname,
+    release => $utsname->release,
+    version => $utsname->version,
+    machine => $utsname->machine,
 };
 is_deeply($utsname->href, $answer, 'href: hashref representation is as expected');
 
