@@ -25,19 +25,19 @@
 #if !defined(UV_PRIORITY_LOW)
 #define UV_PRIORITY_LOW 19
 #endif
-#if !defined(UV_PRIORITY_LOW)
+#if !defined(UV_PRIORITY_BELOW_NORMAL)
 #define UV_PRIORITY_BELOW_NORMAL 10
 #endif
-#if !defined(UV_PRIORITY_LOW)
+#if !defined(UV_PRIORITY_NORMAL)
 #define UV_PRIORITY_NORMAL 0
 #endif
-#if !defined(UV_PRIORITY_LOW)
+#if !defined(UV_PRIORITY_ABOVE_NORMAL)
 #define UV_PRIORITY_ABOVE_NORMAL -7
 #endif
-#if !defined(UV_PRIORITY_LOW)
+#if !defined(UV_PRIORITY_HIGH)
 #define UV_PRIORITY_HIGH -14
 #endif
-#if !defined(UV_PRIORITY_LOW)
+#if !defined(UV_PRIORITY_HIGHEST)
 #define UV_PRIORITY_HIGHEST -20
 #endif
 
