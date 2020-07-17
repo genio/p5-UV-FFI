@@ -1,16 +1,12 @@
 package UV::FFI::TimeVal;
 
-use strict;
-use warnings;
+use UV::FFI::Init;
 use Exporter qw(import);
 
-use FFI::Platypus;
-
 {
-    my $ffi = FFI::Platypus->new( api => 1 );
+    my $ffi = UV::FFI::Init::ffi();
 
     $ffi->type('object(UV::FFI::TimeVal)' => 'uv_timeval_t');
-    $ffi->bundle();
 
     $ffi->attach([timeval64__new => 'new'] => [ 'string', 'long', 'long' ] => 'uv_timeval_t');
     $ffi->attach([timeval64__tv_sec => 'tv_sec'] => ['uv_timeval_t'] => 'long');

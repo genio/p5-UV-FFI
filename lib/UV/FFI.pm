@@ -1,51 +1,29 @@
 package UV::FFI;
 
-use strict;
-use warnings;
-use utf8;
-use feature ':5.14';
+use UV::FFI::Init;
 
 use Carp qw(croak);
 use Data::Dumper::Concise qw(Dumper);
-use IO::Handle qw();
 use Exporter qw(import);
 
-use Alien::libuv;
 use FFI::Platypus;
 use Path::Tiny qw(path);
 use Sub::Util qw(set_subname);
-
-# smaller chunks
-use UV::FFI::Constants qw();
-use UV::FFI::UTSName qw();
-use UV::FFI::TimeVal qw();
-use UV::FFI::TimeVal64 qw();
 
 our @EXPORT_OK = qw(
     uv_err_name uv_handle_size uv_loop_size uv_req_size uv_strerror
     uv_os_uname
 );
 
-my $ffi = FFI::Platypus->new(api => 1);
-$ffi->lib(Alien::libuv->dynamic_libs);
+my $ffi = UV::FFI::Init::ffi();
 $ffi->bundle();
 
-# some objects representing more complex types
-$ffi->type('object(UV::FFI::UTSName)' => 'uv_utsname_t');
-$ffi->type('object(UV::FFI::TimeVal)' => 'uv_timeval_t');
-$ffi->type('object(UV::FFI::TimeVal64)' => 'uv_timeval64_t');
+# smaller chunks
+require UV::FFI::Constants;
+require UV::FFI::UTSName;
+require UV::FFI::TimeVal;
+require UV::FFI::TimeVal64;
 
-# Some types differ depending on OS
-$ffi->type('int64_t', 'uv_pid_t');
-$ffi->type('int', 'uv_file');
-if ($^O eq 'MSWin32') {
-    $ffi->type('opaque', 'uv_os_fd_t');
-    $ffi->type('opaque', 'uv_os_sock_t');
-}
-else {
-    $ffi->type('int', 'uv_os_fd_t');
-    $ffi->type('int', 'uv_os_sock_t');
-}
 
 # All of these functions were shipped with libuv v1.0 and don't
 # need to be gated by version.
@@ -97,7 +75,7 @@ our %function = (
     # int uv_os_gethostname(char* buffer, size_t* size)
     'uv_os_gethostname' =>[['string', 'size_t *'] => 'int', sub {
         my ($xsub) = @_;
-        my $size = UV::FFI::Constants::UV_MAXHOSTNAMESIZE;
+        my $size = UV::FFI::Constants->UV_MAXHOSTNAMESIZE;
         my $buffer = "\0"x$size;
 
         my $ret = $xsub->($buffer, \$size);
@@ -306,15 +284,15 @@ sub _version_or_better {
     return 1 unless ($maj || $min || $pat);
 
 
-    return 0 if UV::FFI::Constants::UV_VERSION_MAJOR < $maj; # full version behind of requested
-    return 1 if UV::FFI::Constants::UV_VERSION_MAJOR > $maj; # full version ahead of requested
+    return 0 if UV::FFI::Constants->UV_VERSION_MAJOR < $maj; # full version behind of requested
+    return 1 if UV::FFI::Constants->UV_VERSION_MAJOR > $maj; # full version ahead of requested
     # now we should be matching major versions
     return 1 unless $min; # if we were only given major, move on
-    return 0 if UV::FFI::Constants::UV_VERSION_MINOR < $min; # same major, lower minor
-    return 1 if UV::FFI::Constants::UV_VERSION_MINOR > $min; # same major, higher minor
+    return 0 if UV::FFI::Constants->UV_VERSION_MINOR < $min; # same major, lower minor
+    return 1 if UV::FFI::Constants->UV_VERSION_MINOR > $min; # same major, higher minor
     # now we should be matching major and minor, check patch
     return 1 unless $pat; # move on if we were given maj, min only
-    return 0 if UV::FFI::Constants::UV_VERSION_PATCH < $pat;
+    return 0 if UV::FFI::Constants->UV_VERSION_PATCH < $pat;
     return 1;
 }
 

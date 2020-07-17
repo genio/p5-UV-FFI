@@ -1,14 +1,17 @@
 package UV::FFI::Constants;
 
-use strict;
-use warnings;
-
-use Exporter qw(import);
+use UV::FFI::Init;
 use FFI::Platypus;
+# use v5.16;
+# use Exporter qw(import);
 
-{
-    my $ffi = FFI::Platypus->new(api => 1);
-    $ffi->bundle();
-}
+my $ffi = UV::FFI::Init::ffi();
+$ffi->bundle();
+# say "haha'";
+# $foo = 'bar';
+# our @EXPORT_OK = (
+#     @UV::FFI::Constants::EXPORT_OK,
+#     grep(sub {$_ && $_ =~ /^UV_/}, %UV::FFI::Constants::),
+# );
 
 1;
